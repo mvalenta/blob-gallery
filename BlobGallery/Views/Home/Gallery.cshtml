@@ -1,0 +1,22 @@
+﻿@{
+    ViewData["Title"] = "Gallery";
+    var blobLabel = ((List<string>)ViewData["Blobs"]).Count.ToString() + " blob";
+    if(((List<string>)ViewData["Blobs"]).Count != 1)
+    {
+        blobLabel += "s";
+    }
+    blobLabel += " found";
+}
+        <h3>@ViewData["Message"]</h3>
+
+        <h4>@blobLabel</h4>
+
+        @foreach (var item in (List<string>)ViewData["Blobs"])
+        {
+            <div class="col-md-3">
+                <img src="@item" />
+            </div>
+
+        }
+
+        <p>Use this area to provide additional information.</p>
