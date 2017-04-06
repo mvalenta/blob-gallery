@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using BlobGallery.Services;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -31,18 +32,31 @@ namespace BlobGallery.Controllers
         [HttpPost]
         public async Task<IActionResult> Post(List<IFormFile> files)
         {
+            var blobSvc = new BlobService();
+            
+
+            var container = blobSvc.GetBlobContainer();
             long size = files.Sum(f => f.Length);
 
-            // full path to file in temp location
-            var filePath = Path.GetTempFileName();
-
-            foreach (var formFile in files)
+            foreach (var file in files)
             {
-                if (formFile.Length > 0)
+                var blob = container.GetBlockBlobReference(file.FileName);
+                if (!blob.ExistsAsync().Result)
                 {
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+
+                    if (file.Length > 0)
                     {
-                        await formFile.CopyToAsync(stream);
+                        using (var fileStream = file.OpenReadStream())
+                        using (var ms = new MemoryStream())
+                        {
+                            fileStream.CopyTo(ms);
+                            var fileBytes = ms.ToArray();
+                            string s = Convert.ToBase64String(fileBytes);
+                            // act on the Base64 data
+                            await blob.UploadFromByteArrayAsync(fileBytes, 0, fileBytes.Length);
+                            blob.Properties.ContentType = file.ContentType;
+                            await blob.SetPropertiesAsync();
+                        }
                     }
                 }
             }
@@ -50,7 +64,11 @@ namespace BlobGallery.Controllers
             // process uploaded files
             // Don't rely on or trust the FileName property without validation.
 
-            return Ok(new { count = files.Count, size, filePath });
+            Redirect("/Home/Gallery");
+            
+            return Ok(new { count = files.Count, size});
+
+            //Redirect here?
         }
 
         // PUT api/values/5

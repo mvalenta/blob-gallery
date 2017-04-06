@@ -16,36 +16,16 @@ namespace BlobGallery.Services
 
         }
 
-        public List<string> GetBlobList()
+        public List<IListBlobItem> GetBlobList()
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(conn);
-
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-
-            CloudBlobContainer container = blobClient.GetContainerReference("myfirstcontainer");
-
-            // Create the container if it doesn't already exist.
-            container.CreateIfNotExistsAsync();
-
-
-
-            SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy()
-            {
-                Permissions = SharedAccessBlobPermissions.Add |
-                              SharedAccessBlobPermissions.Create |
-                              SharedAccessBlobPermissions.Delete |
-                              SharedAccessBlobPermissions.List |
-                              SharedAccessBlobPermissions.Read |
-                              SharedAccessBlobPermissions.Write,
-                SharedAccessExpiryTime = DateTimeOffset.UtcNow.AddDays(2)
-            };
+            var container = GetBlobContainer();
 
             //CloudBlockBlob samplePic = container.GetBlockBlobReference("2016-09-09.jpg");
             //var sas = samplePic.GetSharedAccessSignature(policy);
 
             var list = container.ListBlobsSegmentedAsync(null).Result.Results;
 
-            var blobUrls = new List<string>();
+            var blobs = new List<IListBlobItem>();
 
             // Loop over items within the container and output the length and URI.
             foreach (IListBlobItem item in list)
@@ -53,8 +33,8 @@ namespace BlobGallery.Services
                 if (item.GetType() == typeof(CloudBlockBlob))
                 {
                     CloudBlockBlob blob = (CloudBlockBlob)item;
-                    var sas = blob.GetSharedAccessSignature(policy);
-                    blobUrls.Add(blob.Uri.ToString() + sas);
+                    
+                    blobs.Add(blob);
                 }
                 else if (item.GetType() == typeof(CloudPageBlob))
                 {
@@ -66,8 +46,54 @@ namespace BlobGallery.Services
                 }
             }
 
-            return blobUrls;
+            return blobs;
         }
-        // Create the blob client.
+
+
+        public CloudBlobContainer GetBlobContainer()
+        {
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(conn);
+
+            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+
+            CloudBlobContainer container = blobClient.GetContainerReference("myfirstcontainer");
+
+            // Create the container if it doesn't already exist.
+            container.CreateIfNotExistsAsync();
+
+            return container;
+        }
+
+
+        public List<string> GetBlobUrls(List<IListBlobItem> list)
+        {
+            var policy = GetBlobSasPolicy();   
+            var urls = new List<string>();
+            foreach (var item in list)
+            {
+                var sas = ((CloudBlockBlob)item).GetSharedAccessSignature(policy);
+
+                if (item.GetType() == typeof(CloudBlockBlob))
+                {
+                    CloudBlockBlob blob = (CloudBlockBlob)item;
+                    urls.Add(blob.Uri.ToString() + sas);
+                }
+            }
+
+            return urls;
+        }
+        public SharedAccessBlobPolicy GetBlobSasPolicy()
+        {
+            return new SharedAccessBlobPolicy()
+            {
+                Permissions = SharedAccessBlobPermissions.Add |
+                                  SharedAccessBlobPermissions.Create |
+                                  SharedAccessBlobPermissions.Delete |
+                                  SharedAccessBlobPermissions.List |
+                                  SharedAccessBlobPermissions.Read |
+                                  SharedAccessBlobPermissions.Write,
+                SharedAccessExpiryTime = DateTimeOffset.UtcNow.AddDays(2)
+            };
+        }
     }
-}
+}  

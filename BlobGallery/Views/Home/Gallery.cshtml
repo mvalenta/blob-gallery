@@ -1,22 +1,55 @@
-﻿@{
+﻿@using BlobGallery.Models;
+@{
     ViewData["Title"] = "Gallery";
-    var blobLabel = ((List<string>)ViewData["Blobs"]).Count.ToString() + " blob";
-    if(((List<string>)ViewData["Blobs"]).Count != 1)
+    var blobs = ((List<BlobViewModel>)ViewData["Blobs"]);
+    var blobLabel = blobs.Count.ToString() + " blob";
+    if(((List<BlobViewModel>)ViewData["Blobs"]).Count != 1)
     {
         blobLabel += "s";
     }
     blobLabel += " found";
 }
+
+<style>
+    div.gallery {
+        margin: 5px;
+        border: 1px solid #ccc;
+        float: left;
+    }
+
+        div.gallery:hover {
+            border: 1px solid #777;
+        }
+
+        div.gallery img {
+            height: auto;
+        }
+
+    div.desc {
+        padding: 15px;
+        text-align: center;
+        overflow:hidden;
+    }
+</style>
+
         <h3>@ViewData["Message"]</h3>
 
         <h4>@blobLabel</h4>
 
-        @foreach (var item in (List<string>)ViewData["Blobs"])
-        {
-            <div class="col-md-3">
-                <img src="@item" />
+<div class="row">
+    @foreach (var item in (List<BlobViewModel>)ViewData["Blobs"])
+    {
+        <div class="form-group col-md-3" style="display: flex; flex-flow: row wrap; justify-content: space-around;">
+            <div class="gallery">
+                <a target="_blank" href="@item.Url">
+                    <img src="@item.Url" style="height:200px;max-width:100%;">
+                </a>
+                <div class="desc">@item.File</div>
             </div>
+        </div>
+    }
+</div>
 
-        }
+
 
         <p>Use this area to provide additional information.</p>
